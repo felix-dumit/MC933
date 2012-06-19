@@ -28,6 +28,7 @@ import android.graphics.drawable.Drawable;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.util.Log;
@@ -160,7 +161,7 @@ public class BusFinderActivity extends MapActivity implements
 
 		ManagedOverlay managedOverlay = overlayManager
 				.createOverlay(defaultmarker);
-		
+
 		// creating some marker:
 		// managedOverlay.createItem(new
 		// GeoPoint(CENTER_LATITUDE,CENTER_LONGITUDE));
@@ -314,25 +315,10 @@ public class BusFinderActivity extends MapActivity implements
 			break;
 		case R.id.itemKML:
 
-			Calendar now = Calendar.getInstance();
-			now.setTime(new Time(12, 40, 00));
-			Log.d(TAG, "KML");
-			String str = "http://mc933.lab.ic.unicamp.br:8010/Point2Point?s_lat=-22.827799;s_lon=-47.070858;d_lat=-22.814716;d_lon=-47.064303";
-			str += ";time=" + now.getTime().getHours() + ":"
-					+ now.getTime().getMinutes();
-			JSONArray jar = ServerOperations.getJSON(str);
-			if (jar == null)
-				break;
-			for (int i = 0; i < jar.length(); i++) {
-				try {
-					Log.d("ARRIVE:", jar.getJSONObject(i).getString("arrival"));
-				} catch (JSONException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			}
-			// loadbusStops(busPoints);
-
+			Intent streetView = new Intent(android.content.Intent.ACTION_VIEW,Uri.parse("google.streetview:cbll="+ (double) myPoint.getLatitudeE6() / 1e6+","+(double) myPoint.getLongitudeE6() / 1e6+"&cbp=1,99.56,,1,-5.27&mz=21"));
+			startActivity(streetView);
+			
+			
 			break;
 		case R.id.itemLocation:
 
@@ -460,8 +446,7 @@ public class BusFinderActivity extends MapActivity implements
 			doc = db.parse(fis);
 			if (doc == null)
 				Log.d(TAG, "DOC NULL");
-			Log.d("TEXTCONTEXT:", doc.getElementsByTagName("Coordinates")
-					.toString());
+			//Log.d("TEXTCONTEXT:", doc.getElementsByTagName("Coordinates").toString());
 
 			NodeList nplace = doc.getElementsByTagName("Placemark");
 			int j;
@@ -476,16 +461,16 @@ public class BusFinderActivity extends MapActivity implements
 					if (kids.item(j).getNodeName().contains("Point")) {
 						String[] pairs = kids.item(j).getTextContent().trim()
 								.split(",");
-						Log.d("Point", "LAT:" + pairs[0] + "LON:" + pairs[1]);
+						//Log.d("Point", "LAT:" + pairs[0] + "LON:" + pairs[1]);
 						gpoint = new GeoPoint(
 								(int) (Double.parseDouble(pairs[1]) * 1E6),
 								(int) (Double.parseDouble(pairs[0]) * 1E6));
 					} else if (kids.item(j).getNodeName().contains("name")) {
 						stopName = kids.item(j).getTextContent().trim();
-						Log.d("Point Name", "BUSSTOP NAME : " + stopName);
+						//Log.d("Point Name", "BUSSTOP NAME : " + stopName);
 					} else if (kids.item(j).getNodeName().contains("stopid")) {
 						stopid = kids.item(j).getTextContent().trim();
-						Log.d(stopName, stopid);
+						//Log.d(stopName, stopid);
 					}
 
 				}

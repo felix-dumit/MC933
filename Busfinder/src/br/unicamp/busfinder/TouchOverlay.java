@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.sql.Time;
 import java.util.Calendar;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -15,17 +14,18 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.gesture.GestureOverlayView;
-import android.gesture.GestureOverlayView.OnGestureListener;
 import android.graphics.Color;
 import android.graphics.PointF;
 import android.graphics.drawable.Drawable;
 import android.os.Vibrator;
+import android.text.format.Time;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.widget.EditText;
@@ -79,7 +79,7 @@ public class TouchOverlay extends Overlay {
 
 		}
 
-		if (stop_time - start_time > 1000 & distance < 50) {
+		if (stop_time - start_time > 600 & distance < 50) {
 			Log.d("TouchOverlay", "LongTouch");
 
 			Vibrator v = (Vibrator) c
@@ -147,8 +147,9 @@ public class TouchOverlay extends Overlay {
 				public void onClick(DialogInterface dialog, int which) {
 
 					Calendar now = Calendar.getInstance();
-					now.setTime(new Time(12, 40, 00)); // remove this
+					//now.setTime(new Time(12, 40, 00)); // remove this
 					String time = now.getTime().getHours()+ ":"	+ now.getTime().getMinutes();
+					time="";
 
 					String req = String
 							.format(BusFinderActivity.SERVER
@@ -162,40 +163,47 @@ public class TouchOverlay extends Overlay {
 					JSONObject obj = null;
 					try {
 						obj = path.getJSONObject(0);
+						
+			
+		
+					int	source = Integer.parseInt(obj.getString("source"));
+					int	dest = Integer.parseInt(obj.getString("dest"));
+					String action = obj.getString("action");
+					String departure = obj.getString("departure");
+					String arrival = obj.getString("arrival");
+					int timeleft = obj.getInt("time");
 					
-					
-
-					int source = 0, dest = 0;
-					
-						source = Integer.parseInt(obj.getString("source"));
-						dest = Integer.parseInt(obj.getString("dest"));
-				
 					
 					req = BusFinderActivity.SERVER+"getStopPosition?stopid=";
 
 					JSONArray jar = ServerOperations.getJSON(req+source);				
+					if(jar==null)return ;
 					
 					DrawPath(BusFinderActivity.myPoint,
 							ServerOperations.geoFromJSON(jar.getJSONObject(0)), Color.GREEN, map, true);
+					String source_ = jar.getJSONObject(0).getString("name");
 					
 					 jar = ServerOperations.getJSON(req+dest);
+					 if(jar==null)return;
 
 					DrawPath(ServerOperations.geoFromJSON(jar.getJSONObject(0)), touchedpoint, Color.BLUE, map, false);
 					
-					Log.d("PATH:", BusFinderActivity.busPoints.getItem(source).getTitle()+" to" + BusFinderActivity.busPoints.getItem(dest).getTitle());
+					String dest_ = jar.getJSONObject(0).getString("name");
+					
+										
 
 					Toast.makeText(
 							c,
-							"destination is "
-									+ BusFinderActivity.GeoDistance(
-											BusFinderActivity.myPoint,
-											touchedpoint) + "m away",
-							Toast.LENGTH_SHORT).show();
+							"You depart from "+source_ + " at " + departure + " and arrive at " + dest_ + " at " + arrival+ "----YOU HAVE "+timeleft+" seconds",
+							600000).show();
 					
 					
 					} catch (JSONException e) {
 						e.printStackTrace();
 					}
+				catch(Exception e){
+					e.printStackTrace();
+				}
 
 				}
 			});
@@ -258,7 +266,48 @@ public class TouchOverlay extends Overlay {
 			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 			DocumentBuilder db = dbf.newDocumentBuilder();
 			doc = db.parse(urlConnection.getInputStream());
+			
+			
+			//doc.getDocumentElement()
+			
+			GeoPoint gp1 = null, gp2;
+			
+			NodeList pmarks = doc.getElementsByTagName("Placemark");
+			for(int i=0; i<pmarks.getLength();i++){
+				
+				
+				
+				Element child = (Element)pmarks.item(i);
+				String instructions = child.getElementsByTagName("name").item(0).getTextContent();
+				//TODO usar instructions para alguma coisa
+				if(!(child.getElementsByTagName("Point").getLength()>0))break;
+				String []coords = child.getElementsByTagName("Point").item(0).getTextContent().split(",");
+				Log.d(instructions,coords.toString());
+				
+				
+				gp2=gp1;
+				gp1= new GeoPoint(
+						(int) (Double.parseDouble(coords[1]) * 1E6),
+						(int) (Double.parseDouble(coords[0]) * 1E6));
+				
+				if(i==0){				
+					pO = new PathOverlay(gp1, gp1, 1);
+				}
+				
+				else{
+					pO = new PathOverlay(gp1, gp2, 2, color);
+					
+				}				
+				pathlist.addItem(pO, mapView);		
+						
+				
+			}
+			pO = new PathOverlay(dest, dest, 3);
+			pathlist.addItem(pO, mapView);	
+			mapView.invalidate();
 
+
+			/*
 			if (doc.getElementsByTagName("GeometryCollection").getLength() > 0) {
 
 				String path = doc.getElementsByTagName("GeometryCollection")
@@ -275,10 +324,9 @@ public class TouchOverlay extends Overlay {
 						(int) (Double.parseDouble(coords[0]) * 1E6));
 
 				pO = new PathOverlay(startGP, startGP, 1);
-				// mapView.getOverlays().add(pO);
 				pathlist.addItem(pO, mapView);
 
-				GeoPoint gp1;
+				//GeoPoint gp1;
 				GeoPoint gp2 = startGP;
 				for (int i = 1; i < pairs.length; i++) // the last one would be
 														// crash
@@ -299,12 +347,12 @@ public class TouchOverlay extends Overlay {
 				pathlist.addItem(pO, mapView);
 				// mapView.getOverlays().add(pathlist);
 				mapView.invalidate();
-
+	
 				// use
 				// the
 				// default
 				// color
-			}
+			}*/
 		} catch (MalformedURLException e) {
 			e.printStackTrace();
 		} catch (IOException e) {

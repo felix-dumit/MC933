@@ -267,24 +267,26 @@ class Resource(object):
               if (time == ""):
                         dtime = datetime.now()
               else:
-                 dtime = datetime.strptime(time, "%H:%M")                                      
+                 dtime = datetime.strptime(time, "%H:%M:%S")                                      
 
               ret = self.Stop2Stop(p_source['sid'], p_dest['sid'], time)
      
               if(ret != {}):           
                 
                 arrival = ret['dest']['time']
-                ftime = datetime.strptime(arrival, "%H:%M")
+                ftime = datetime.strptime(arrival, "%H:%M:%S")
                 ftime = ftime + timedelta(seconds=p_dest['dist'] / 2)
-                ftime = datetime.strftime(ftime, "%H:%M")
+                ftime = datetime.strftime(ftime, "%H:%M:%S")
                 
-                t_departure = datetime.strptime(ret['source']['time'], "%H:%M")
+                t_departure = datetime.strptime(ret['source']['time'], "%H:%M:%S")
                 
+                t_departure = t_departure.replace(dtime.year,dtime.month,dtime.day)
                 delta = t_departure - dtime
-                #nsecs = delta.total_seconds()
-                nsecs = (delta.microseconds + (delta.seconds + delta.days*24*3600)*10**6)/10**6
+                                #nsecs = delta.total_seconds()
+                nsecs = (delta.microseconds + (delta.seconds + delta.days*24*3600)*10**6)/10**6               
                 speed = p_source['dist'] / nsecs
                 
+           
                 if(speed > 7):
                     action = "___YOU WONT MAKE IT"
                 elif(speed > 3):
@@ -296,7 +298,7 @@ class Resource(object):
                 
                 
                 ld.append({
-                           'start_time': datetime.strftime(dtime,"%H:%M"),
+                           'start_time': datetime.strftime(dtime,"%H:%M:%S"),
                            'departure': ret['source']['time'],
                            'arrival':ret['dest']['time'],
                            'source': p_source['sid'],
@@ -305,7 +307,8 @@ class Resource(object):
                            'dist_source': p_source['dist'],
                            'dist_dest': p_dest['dist'],
                            'final_time': ftime,
-                           'action': action
+                           'action': action,
+                           'time': nsecs
                             })  
         
         ld.sort(key = itemgetter('action'))                     
@@ -368,7 +371,7 @@ class Resource(object):
         if (time == ""):
             time = datetime.now()
         else:
-            time = datetime.strptime(time, "%H:%M")
+            time = datetime.strptime(time, "%H:%M:%S")
         for fname in tables:
             dados = list(csv.reader(open(fname[0])))
             dh = len(dados)
@@ -381,7 +384,7 @@ class Resource(object):
                 continue
             for i in range(2, dh):
                 if dados[i][x] == '-': continue
-                t = datetime.strptime(dados[i][x], "%H:%M").replace(year=time.year, month=time.month, day=time.day)
+                t = datetime.strptime(dados[i][x]+":00", "%H:%M:%S").replace(year=time.year, month=time.month, day=time.day)
                 #if (m*(t - time) < (t - t)):
                 #    t = t.replace(day = t.day + m)
                 if (m * (t - time) > (t - t)):
@@ -392,9 +395,9 @@ class Resource(object):
         for i in range(0, 10):
             if i >= l:
                 break
-            txt += datetime.strftime(buses[i][1], "%H:%M") + " - " + buses[i][2] + " - run id = " + str(buses[i][3]) + "<br/>"
+            #txt += datetime.strftime(buses[i][1], "%H:%M:%S") + " - " + buses[i][2] + " - run id = " + str(buses[i][3]) + "<br/>"
             lret.append({
-                         'time': datetime.strftime(buses[i][1], "%H:%M"),
+                         'time': datetime.strftime(buses[i][1], "%H:%M:%S"),
                          'circular' : buses[i][2],
                          'run' : buses[i][3]
                          })
@@ -477,7 +480,7 @@ root.resource = Resource()
     
 conf = {
     'global': {
-        'server.socket_host': '127.0.0.1', # 'mc933.lab.ic.unicamp.br', # 
+        'server.socket_host': 'mc933.lab.ic.unicamp.br', # '127.0.0.1', # 
         'server.socket_port': 8010,
     }
 }

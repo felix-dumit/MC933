@@ -3,8 +3,10 @@ package br.unicamp.busfinder;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
+import android.net.Uri;
 import android.util.Log;
 import android.widget.ArrayAdapter;
 import android.widget.Toast;
@@ -64,10 +66,22 @@ public class BusPoints extends ListPoints {
 					}
 				});
 
-		dialog.setButton3("Cancel", new DialogInterface.OnClickListener() {
+		dialog.setButton3("StreetView", new DialogInterface.OnClickListener() {
 
 			public void onClick(DialogInterface dialog, int which) {
-				// do nothing
+
+				Intent streetView = new Intent(
+						android.content.Intent.ACTION_VIEW, Uri
+								.parse("google.streetview:cbll="
+										+ (double) item.getPoint()
+												.getLatitudeE6()
+										/ 1e6
+										+ ","
+										+ (double) item.getPoint()
+												.getLongitudeE6() / 1e6
+										+ "&cbp=1,99.56,,1,-5.27&mz=21"));
+				context.startActivity(streetView);
+
 			}
 		});
 
@@ -102,7 +116,7 @@ public class BusPoints extends ListPoints {
 		icon.setBounds(0, 0, icon.getIntrinsicWidth(),
 				icon.getIntrinsicHeight());
 
-		 return icon;
+		return icon;
 
 	}
 
