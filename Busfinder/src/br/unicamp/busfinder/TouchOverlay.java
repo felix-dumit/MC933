@@ -25,7 +25,6 @@ import android.graphics.Color;
 import android.graphics.PointF;
 import android.graphics.drawable.Drawable;
 import android.os.Vibrator;
-import android.text.format.Time;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.widget.EditText;
@@ -58,14 +57,13 @@ public class TouchOverlay extends Overlay {
 	@Override
 	public boolean onTouchEvent(MotionEvent e, final MapView map) {
 
-		//Log.d("TouchOverlay", "onTouch");
+		// Log.d("TouchOverlay", "onTouch");
 		if (e.getAction() == MotionEvent.ACTION_DOWN) {
 			start_time = e.getEventTime();
 			sp.set(e.getX(), e.getY());
 
 			touchedpoint = map.getProjection().fromPixels((int) sp.x,
 					(int) sp.y);
-			
 
 		}
 		if (e.getAction() == MotionEvent.ACTION_UP) {
@@ -147,66 +145,82 @@ public class TouchOverlay extends Overlay {
 				public void onClick(DialogInterface dialog, int which) {
 
 					Calendar now = Calendar.getInstance();
-					//now.setTime(new Time(12, 40, 00)); // remove this
-					String time = now.getTime().getHours()+ ":"	+ now.getTime().getMinutes();
-					time="";
+					// now.setTime(new Time(12, 40, 00)); // remove this
+					String time = now.getTime().getHours() + ":"
+							+ now.getTime().getMinutes();
+					time = "";
 
 					String req = String
 							.format(BusFinderActivity.SERVER
 									+ "Point2Point?s_lat=%f;s_lon=%f;d_lat=%f;d_lon=%f;time=%s",
-									(double)BusFinderActivity.myPoint.getLatitudeE6() / 1E6,
-									(double)BusFinderActivity.myPoint.getLongitudeE6() / 1E6,
-									(double)touchedpoint.getLatitudeE6() / 1e6,
-									(double)touchedpoint.getLongitudeE6() / 1e6, 
+									(double) BusFinderActivity.myPoint
+											.getLatitudeE6() / 1E6,
+									(double) BusFinderActivity.myPoint
+											.getLongitudeE6() / 1E6,
+									(double) touchedpoint.getLatitudeE6() / 1e6,
+									(double) touchedpoint.getLongitudeE6() / 1e6,
 									time);
 					JSONArray path = ServerOperations.getJSON(req);
 					JSONObject obj = null;
 					try {
 						obj = path.getJSONObject(0);
+
+						int source = Integer.parseInt(obj.getString("source"));
+						int dest = Integer.parseInt(obj.getString("dest"));
+						String action = obj.getString("action");
+						String departure = obj.getString("departure");
+						String arrival = obj.getString("arrival");
+						String circular = obj.getString("circular");
+						int timeleft = obj.getInt("time");
+
+						req = BusFinderActivity.SERVER
+								+ "getStopPosition?stopid=";
+
+						JSONArray jar = ServerOperations.getJSON(req + source);
+						if (jar == null)
+							return;
+
+						GeoPoint sourcePoint =  ServerOperations
+								.geoFromJSON(jar.getJSONObject(0));
 						
-			
-		
-					int	source = Integer.parseInt(obj.getString("source"));
-					int	dest = Integer.parseInt(obj.getString("dest"));
-					String action = obj.getString("action");
-					String departure = obj.getString("departure");
-					String arrival = obj.getString("arrival");
-					String circular = obj.getString("circular");
-					int timeleft = obj.getInt("time");
-					
-					
-					req = BusFinderActivity.SERVER+"getStopPosition?stopid=";
+						DrawPath(BusFinderActivity.myPoint,sourcePoint,
+								Color.GREEN, map, true);
+						String source_ = jar.getJSONObject(0).getString("name");
 
-					JSONArray jar = ServerOperations.getJSON(req+source);				
-					if(jar==null)return ;
-					
-					DrawPath(BusFinderActivity.myPoint,
-							ServerOperations.geoFromJSON(jar.getJSONObject(0)), Color.GREEN, map, true);
-					String source_ = jar.getJSONObject(0).getString("name");
-					
-					 jar = ServerOperations.getJSON(req+dest);
-					 if(jar==null)return;
+						jar = ServerOperations.getJSON(req + dest);
+						if (jar == null)
+							return;
+						
+						GeoPoint destPoint =  ServerOperations
+								.geoFromJSON(jar.getJSONObject(0));
 
-					DrawPath(ServerOperations.geoFromJSON(jar.getJSONObject(0)), touchedpoint, Color.BLUE, map, false);
-					
-					String dest_ = jar.getJSONObject(0).getString("name");
-					
-										
+						DrawPath(destPoint, touchedpoint, Color.BLUE,
+								map, false);
+						
+						
+						PathOverlay pO = new PathOverlay(sourcePoint, destPoint, 2, Color.RED);
+						pathlist.addItem(pO, map);
 
-					Toast.makeText(
-							c,
-							"Take " + circular + " from "+source_ + " at " + departure + " and arrive at " + dest_ + " at " + arrival+ "----YOU HAVE "+timeleft+" seconds",
-							6000000).show();
-					
-					Log.d("TOAST","Take " + circular + " from "+source_ + " at " + departure + " and arrive at " + dest_ + " at " + arrival+ "----YOU HAVE "+timeleft+" seconds");
-					
-					
+						String dest_ = jar.getJSONObject(0).getString("name");
+
+						Toast.makeText(
+								c,
+								"Take " + circular + " from " + source_
+										+ " at " + departure
+										+ " and arrive at " + dest_ + " at "
+										+ arrival + "----YOU HAVE " + timeleft
+										+ " seconds", Toast.LENGTH_LONG).show();
+
+						Log.d("TOAST", "Take " + circular + " from " + source_
+								+ " at " + departure + " and arrive at "
+								+ dest_ + " at " + arrival + "----YOU HAVE "
+								+ timeleft + " seconds");
+
 					} catch (JSONException e) {
 						e.printStackTrace();
+					} catch (Exception e) {
+						e.printStackTrace();
 					}
-				catch(Exception e){
-					e.printStackTrace();
-				}
 
 				}
 			});
@@ -269,93 +283,74 @@ public class TouchOverlay extends Overlay {
 			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 			DocumentBuilder db = dbf.newDocumentBuilder();
 			doc = db.parse(urlConnection.getInputStream());
-			
-			
-			//doc.getDocumentElement()
-			
+
+			// doc.getDocumentElement()
+
 			GeoPoint gp1 = null, gp2;
-			
+
 			NodeList pmarks = doc.getElementsByTagName("Placemark");
-			for(int i=0; i<pmarks.getLength();i++){
-				
-				
-				
-				Element child = (Element)pmarks.item(i);
-				String instructions = child.getElementsByTagName("name").item(0).getTextContent();
-				//TODO usar instructions para alguma coisa
-				if(!(child.getElementsByTagName("Point").getLength()>0))break;
-				String []coords = child.getElementsByTagName("Point").item(0).getTextContent().split(",");
-				Log.d(instructions,coords.toString());
-				
-				
-				gp2=gp1;
-				gp1= new GeoPoint(
-						(int) (Double.parseDouble(coords[1]) * 1E6),
+			for (int i = 0; i < pmarks.getLength(); i++) {
+
+				Element child = (Element) pmarks.item(i);
+				String instructions = child.getElementsByTagName("name")
+						.item(0).getTextContent();
+				// TODO usar instructions para alguma coisa
+				if (!(child.getElementsByTagName("Point").getLength() > 0))
+					break;
+				String[] coords = child.getElementsByTagName("Point").item(0)
+						.getTextContent().split(",");
+				Log.d(instructions, coords.toString());
+
+				gp2 = gp1;
+				gp1 = new GeoPoint((int) (Double.parseDouble(coords[1]) * 1E6),
 						(int) (Double.parseDouble(coords[0]) * 1E6));
-				
-				if(i==0){				
+
+				if (i == 0) {
 					pO = new PathOverlay(gp1, gp1, 1);
 				}
-				
-				else{
+
+				else {
 					pO = new PathOverlay(gp1, gp2, 2, color);
-					
-				}				
-				pathlist.addItem(pO, mapView);		
-						
-				
+
+				}
+				pathlist.addItem(pO, mapView);
+
 			}
 			pO = new PathOverlay(dest, dest, 3);
-			pathlist.addItem(pO, mapView);	
+			pathlist.addItem(pO, mapView);
 			mapView.invalidate();
 
-
 			/*
-			if (doc.getElementsByTagName("GeometryCollection").getLength() > 0) {
-
-				String path = doc.getElementsByTagName("GeometryCollection")
-						.item(0).getFirstChild().getFirstChild()
-						.getFirstChild().getNodeValue();
-				Log.d("xxx", "path=" + path);
-				String[] pairs = path.split(" ");
-				String[] coords = pairs[0].split(","); // coords[0]=longitude
-														// coords[1]=latitude
-														// coords[2]=height
-				// src
-				GeoPoint startGP = new GeoPoint(
-						(int) (Double.parseDouble(coords[1]) * 1E6),
-						(int) (Double.parseDouble(coords[0]) * 1E6));
-
-				pO = new PathOverlay(startGP, startGP, 1);
-				pathlist.addItem(pO, mapView);
-
-				//GeoPoint gp1;
-				GeoPoint gp2 = startGP;
-				for (int i = 1; i < pairs.length; i++) // the last one would be
-														// crash
-				{
-					coords = pairs[i].split(",");
-					gp1 = gp2;
-					// watch out! For GeoPoint, first:latitude, second:longitude
-					gp2 = new GeoPoint(
-							(int) (Double.parseDouble(coords[1]) * 1E6),
-							(int) (Double.parseDouble(coords[0]) * 1E6));
-
-					pO = new PathOverlay(gp1, gp2, 2, color);
-					pathlist.addItem(pO, mapView);
-					Log.d("xxx", "pair:" + pairs[i]);
-				}
-				pO = new PathOverlay(dest, dest, 3);
-				// mapView.getOverlays().add(pO);
-				pathlist.addItem(pO, mapView);
-				// mapView.getOverlays().add(pathlist);
-				mapView.invalidate();
-	
-				// use
-				// the
-				// default
-				// color
-			}*/
+			 * if (doc.getElementsByTagName("GeometryCollection").getLength() >
+			 * 0) {
+			 * 
+			 * String path = doc.getElementsByTagName("GeometryCollection")
+			 * .item(0).getFirstChild().getFirstChild()
+			 * .getFirstChild().getNodeValue(); Log.d("xxx", "path=" + path);
+			 * String[] pairs = path.split(" "); String[] coords =
+			 * pairs[0].split(","); // coords[0]=longitude // coords[1]=latitude
+			 * // coords[2]=height // src GeoPoint startGP = new GeoPoint( (int)
+			 * (Double.parseDouble(coords[1]) * 1E6), (int)
+			 * (Double.parseDouble(coords[0]) * 1E6));
+			 * 
+			 * pO = new PathOverlay(startGP, startGP, 1); pathlist.addItem(pO,
+			 * mapView);
+			 * 
+			 * //GeoPoint gp1; GeoPoint gp2 = startGP; for (int i = 1; i <
+			 * pairs.length; i++) // the last one would be // crash { coords =
+			 * pairs[i].split(","); gp1 = gp2; // watch out! For GeoPoint,
+			 * first:latitude, second:longitude gp2 = new GeoPoint( (int)
+			 * (Double.parseDouble(coords[1]) * 1E6), (int)
+			 * (Double.parseDouble(coords[0]) * 1E6));
+			 * 
+			 * pO = new PathOverlay(gp1, gp2, 2, color); pathlist.addItem(pO,
+			 * mapView); Log.d("xxx", "pair:" + pairs[i]); } pO = new
+			 * PathOverlay(dest, dest, 3); // mapView.getOverlays().add(pO);
+			 * pathlist.addItem(pO, mapView); //
+			 * mapView.getOverlays().add(pathlist); mapView.invalidate();
+			 * 
+			 * // use // the // default // color }
+			 */
 		} catch (MalformedURLException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
@@ -366,6 +361,5 @@ public class TouchOverlay extends Overlay {
 			e.printStackTrace();
 		}
 	}
-
 
 }
