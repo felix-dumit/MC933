@@ -48,6 +48,7 @@ import com.google.android.maps.MapView;
 import de.android1.overlaymanager.ManagedOverlay;
 import de.android1.overlaymanager.OverlayManager;
 
+//teste
 public class BusFinderActivity extends MapActivity implements
 		OnSharedPreferenceChangeListener, OnClickListener {
 
