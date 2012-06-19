@@ -171,6 +171,7 @@ public class TouchOverlay extends Overlay {
 					String action = obj.getString("action");
 					String departure = obj.getString("departure");
 					String arrival = obj.getString("arrival");
+					String circular = obj.getString("circular");
 					int timeleft = obj.getInt("time");
 					
 					
@@ -194,8 +195,10 @@ public class TouchOverlay extends Overlay {
 
 					Toast.makeText(
 							c,
-							"You depart from "+source_ + " at " + departure + " and arrive at " + dest_ + " at " + arrival+ "----YOU HAVE "+timeleft+" seconds",
-							600000).show();
+							"Take " + circular + " from "+source_ + " at " + departure + " and arrive at " + dest_ + " at " + arrival+ "----YOU HAVE "+timeleft+" seconds",
+							6000000).show();
+					
+					Log.d("TOAST","Take " + circular + " from "+source_ + " at " + departure + " and arrive at " + dest_ + " at " + arrival+ "----YOU HAVE "+timeleft+" seconds");
 					
 					
 					} catch (JSONException e) {
