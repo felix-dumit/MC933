@@ -17,6 +17,7 @@ from xml.dom.minidom import Node
 from operator import itemgetter
 import os
 import simplejson as json
+from restful_lib import Connection
 #from __future__ import division
 
 
@@ -48,7 +49,21 @@ class Resource(object):
         for row in reader:
             txt+= str(row) + "</br>"
         return txt
+    
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    def getBusesPositions(self):
+        lcord = []
+        conn = Connection("http://mc933.lab.ic.unicamp.br:8017/onibus")
+        response = conn.request_get("")
         
+        buses = json.loads(response["body"])
+        
+        for i in buses:
+            response = conn.request_get(str(i))
+            lcord.append(json.loads(response["body"]))
+        #conn.request_put("/sidewinder", {'color': 'blue'}, headers={'content-type':'application/json', 'accept':'application/json'})
+        return lcord
     
     @cherrypy.expose
     def savePoint(self, lat=None, lon=None):
@@ -319,7 +334,6 @@ class Resource(object):
     @cherrypy.expose
     @cherrypy.tools.json_out()    
     def Stop2Stop(self, source, dest, time=''):
-        txt = ""
         source_bus = self.getNextBus(source, time)
         dest_bus = self.getNextBus(dest, time)   
         
@@ -327,23 +341,22 @@ class Resource(object):
         stime='' 
         
         for busD in dest_bus:
-           for busS in source_bus:
-              if(busS["time"] < busD["time"] and busS["circular"] == busD["circular"] and busS["run"] <= busD["run"]):
+            for busS in source_bus:
+                if(busS["time"] < busD["time"] and busS["circular"] == busD["circular"] and busS["run"] <= busD["run"]):
+                    start_bus = self.getNextBus("1",time,circular=busS['circular'])
+                    end_bus = self.getNextBus("26",time,circular=busS['circular'])
                   
-                  start_bus = self.getNextBus("1",time,circular=busS['circular'])
-                  end_bus = self.getNextBus("26",time,circular=busS['circular'])
-                  
-                  for ebus in end_bus:
-                      if (ebus['run']==busS['run']):
-                          etime = ebus['time']
-                          break
-                  for sbus in start_bus:
-                      if(sbus['run']==busD['run']):
-                           stime = sbus['time']
-                           break                     
+                    for ebus in end_bus:
+                        if (ebus['run']==busS['run']):
+                            etime = ebus['time']
+                            break
+                    for sbus in start_bus:
+                        if(sbus['run']==busD['run']):
+                            stime = sbus['time']
+                            break                     
                         
-                  if(etime<stime):
-                      return {
+                    if(etime<stime):
+                        return {
                                 'source':busS,
                                 'dest':busD
                                 }
@@ -354,14 +367,48 @@ class Resource(object):
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
-    def getNextBus(self, stopid, time='', past='false',circular=''):        
+    def getLineInfo(self, line=0, via=0):
+        info = [{   'name' : 'Circular 1',
+                    'via' : [{'name': ''}]
+                 },
+                {   'name': 'Circular 2',
+                    'via' : [{'name': ''}, {'name': 'FEC'}, {'name': 'Museu'}]
+                }]
+        linfo = {}
+        if not (line < len(info) and line >= 0):
+            line = 0
+        if (via < len(info[line]['via']) and via >= 0):
+            via = 0
+        linfo['name'] = info[line]['name']
+        linfo['via'] = info[line]['via'][via]
+        return linfo 
+    
+    
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    def getLineVia(self, lname='Circular 1', vname = ''):
+        lines = ['Circular 1', 'Circular 2']
+        vias = [[''], ['', 'FEC', 'Museu']]
         
-        if(circular==''):
-            tables = [['table_circular1.csv', 'Circular 1'], ['table_circular2.csv', 'Circular 2']]
-        elif(circular=='Circular 1'):
-            tables = [['table_circular1.csv', 'Circular 1']]
-        elif(circular=='Circular 2'):
-            tables = [['table_circular2.csv', 'Circular 2']]
+        line = lines.index(lname)
+        if line == -1: line = 1
+        via = vias.index(vname)
+        if via == -1:
+            line = 0
+            via = 0
+        return {'line': line, 'via': via}
+
+
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    def getNextBus(self, stopid, time='', past='false', line=None, via=None, limit=10):        
+        
+        if(line == None):
+            tables = [['table_circular1.csv', 0], ['table_circular2.csv', 1]]
+        elif(line == 0):
+            tables = [['table_circular1.csv', 0]]
+        elif(line == 1):
+            tables = [['table_circular2.csv', 1]]
               
 
         buses = []
@@ -371,7 +418,7 @@ class Resource(object):
         if (time == ""):
             time = datetime.now()
         else:
-            time = datetime.strptime(time, "%H:%M:%S")
+            time = datetime.strptime(time, "%H:%M")
         for fname in tables:
             dados = list(csv.reader(open(fname[0])))
             dh = len(dados)
@@ -384,22 +431,26 @@ class Resource(object):
                 continue
             for i in range(2, dh):
                 if dados[i][x] == '-': continue
-                t = datetime.strptime(dados[i][x]+":00", "%H:%M:%S").replace(year=time.year, month=time.month, day=time.day)
+                t = datetime.strptime(dados[i][x], "%H:%M").replace(year=time.year, month=time.month, day=time.day)
                 #if (m*(t - time) < (t - t)):
                 #    t = t.replace(day = t.day + m)
+                bline = fname[1]
+                bvia = self.getLineVia(self.getLineInfo(bline)['line'], dados[i][1])
                 if (m * (t - time) > (t - t)):
-                    buses.append([abs(t - time), t, fname[1], i - 2])
+                    buses.append([abs(t - time), t, bline, bvia, i - 2])
         buses.sort()
         lret = []
         l = len(buses)
-        for i in range(0, 10):
+        for i in range(0, limit):
             if i >= l:
                 break
-            #txt += datetime.strftime(buses[i][1], "%H:%M:%S") + " - " + buses[i][2] + " - run id = " + str(buses[i][3]) + "<br/>"
+            txt += datetime.strftime(buses[i][1], "%H:%M") + " - " + buses[i][2] + " - run id = " + str(buses[i][3]) + "<br/>"
             lret.append({
-                         'time': datetime.strftime(buses[i][1], "%H:%M:%S"),
-                         'circular' : buses[i][2],
-                         'run' : buses[i][3]
+                         'time': datetime.strftime(buses[i][1], "%H:%M"),
+                         'line' : buses[i][2],
+                         'via' : buses[i][3],
+                         'circular' : self.getLineInfo(buses[i][2])['line'],
+                         'run' : buses[i][4]
                          })
         
         return lret
@@ -480,7 +531,7 @@ root.resource = Resource()
     
 conf = {
     'global': {
-        'server.socket_host': 'mc933.lab.ic.unicamp.br', # '127.0.0.1', # 
+        'server.socket_host': '127.0.0.1', # 'mc933.lab.ic.unicamp.br', # 
         'server.socket_port': 8010,
     }
 }
