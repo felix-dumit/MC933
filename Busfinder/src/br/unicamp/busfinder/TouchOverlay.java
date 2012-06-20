@@ -210,14 +210,6 @@ public class TouchOverlay extends Overlay {
 		return false;
 	}
 
-	
-	
-	
-	
-	
-	
-
-	
 	public static void DrawPath(GeoPoint src, GeoPoint dest, int color,
 			MapView mapView, boolean clear) {
 		// connect to map web service
@@ -261,73 +253,52 @@ public class TouchOverlay extends Overlay {
 			DocumentBuilder db = dbf.newDocumentBuilder();
 			doc = db.parse(urlConnection.getInputStream());
 
-			// doc.getDocumentElement()
+			if (doc.getElementsByTagName("GeometryCollection").getLength() > 0) {
 
-			GeoPoint gp1 = null, gp2;
-
-			NodeList pmarks = doc.getElementsByTagName("Placemark");
-			for (int i = 0; i < pmarks.getLength(); i++) {
-
-				Element child = (Element) pmarks.item(i);
-				String instructions = child.getElementsByTagName("name")
-						.item(0).getTextContent();
-				// TODO usar instructions para alguma coisa
-				if (!(child.getElementsByTagName("Point").getLength() > 0))
-					break;
-				String[] coords = child.getElementsByTagName("Point").item(0)
-						.getTextContent().split(",");
-				Log.d(instructions, coords.toString());
-
-				gp2 = gp1;
-				gp1 = new GeoPoint((int) (Double.parseDouble(coords[1]) * 1E6),
+				String path = doc.getElementsByTagName("GeometryCollection")
+						.item(0).getFirstChild().getFirstChild()
+						.getFirstChild().getNodeValue();
+				Log.d("xxx", "path=" + path);
+				String[] pairs = path.split(" ");
+				String[] coords = pairs[0].split(","); // coords[0]=longitude
+														// coords[1]=latitude
+														// coords[2]=height
+				// src
+				GeoPoint startGP = new GeoPoint(
+						(int) (Double.parseDouble(coords[1]) * 1E6),
 						(int) (Double.parseDouble(coords[0]) * 1E6));
 
-				if (i == 0) {
-					pO = new PathOverlay(gp1, gp1, 1);
-				}
-
-				else {
-					pO = new PathOverlay(gp1, gp2, 2, color);
-
-				}
+				pO = new PathOverlay(startGP, startGP, 1);
+				// mapView.getOverlays().add(pO);
 				pathlist.addItem(pO, mapView);
 
-			}
-			pO = new PathOverlay(dest, dest, 3);
-			pathlist.addItem(pO, mapView);
-			mapView.invalidate();
+				GeoPoint gp1;
+				GeoPoint gp2 = startGP;
+				for (int i = 1; i < pairs.length; i++) // the last one would be
+														// crash
+				{
+					coords = pairs[i].split(",");
+					gp1 = gp2;
+					// watch out! For GeoPoint, first:latitude, second:longitude
+					gp2 = new GeoPoint(
+							(int) (Double.parseDouble(coords[1]) * 1E6),
+							(int) (Double.parseDouble(coords[0]) * 1E6));
 
-			/*
-			 * if (doc.getElementsByTagName("GeometryCollection").getLength() >
-			 * 0) {
-			 * 
-			 * String path = doc.getElementsByTagName("GeometryCollection")
-			 * .item(0).getFirstChild().getFirstChild()
-			 * .getFirstChild().getNodeValue(); Log.d("xxx", "path=" + path);
-			 * String[] pairs = path.split(" "); String[] coords =
-			 * pairs[0].split(","); // coords[0]=longitude // coords[1]=latitude
-			 * // coords[2]=height // src GeoPoint startGP = new GeoPoint( (int)
-			 * (Double.parseDouble(coords[1]) * 1E6), (int)
-			 * (Double.parseDouble(coords[0]) * 1E6));
-			 * 
-			 * pO = new PathOverlay(startGP, startGP, 1); pathlist.addItem(pO,
-			 * mapView);
-			 * 
-			 * //GeoPoint gp1; GeoPoint gp2 = startGP; for (int i = 1; i <
-			 * pairs.length; i++) // the last one would be // crash { coords =
-			 * pairs[i].split(","); gp1 = gp2; // watch out! For GeoPoint,
-			 * first:latitude, second:longitude gp2 = new GeoPoint( (int)
-			 * (Double.parseDouble(coords[1]) * 1E6), (int)
-			 * (Double.parseDouble(coords[0]) * 1E6));
-			 * 
-			 * pO = new PathOverlay(gp1, gp2, 2, color); pathlist.addItem(pO,
-			 * mapView); Log.d("xxx", "pair:" + pairs[i]); } pO = new
-			 * PathOverlay(dest, dest, 3); // mapView.getOverlays().add(pO);
-			 * pathlist.addItem(pO, mapView); //
-			 * mapView.getOverlays().add(pathlist); mapView.invalidate();
-			 * 
-			 * // use // the // default // color }
-			 */
+					pO = new PathOverlay(gp1, gp2, 2, color);
+					pathlist.addItem(pO, mapView);
+					Log.d("xxx", "pair:" + pairs[i]);
+				}
+				pO = new PathOverlay(dest, dest, 3);
+				// mapView.getOverlays().add(pO);
+				pathlist.addItem(pO, mapView);
+				// mapView.getOverlays().add(pathlist);
+				mapView.invalidate();
+
+				// use
+				// the
+				// default
+				// color
+			}
 		} catch (MalformedURLException e) {
 			e.printStackTrace();
 		} catch (IOException e) {

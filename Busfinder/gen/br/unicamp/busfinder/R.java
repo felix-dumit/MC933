@@ -23,6 +23,7 @@ public final class R {
     public static final class id {
         public static final int fav_search=0x7f070000;
         public static final int imageButton1=0x7f070001;
+        public static final int itemInfo=0x7f070006;
         public static final int itemKML=0x7f070004;
         public static final int itemLocation=0x7f070005;
         public static final int itemPrefs=0x7f070003;
@@ -49,6 +50,7 @@ public final class R {
         public static final int summarySatelliteView=0x7f050007;
         public static final int summaryStreetView=0x7f050004;
         public static final int titleCompass=0x7f05000b;
+        public static final int titleInfo=0x7f050015;
         public static final int titleKML=0x7f05000c;
         public static final int titleListPoints=0x7f050010;
         public static final int titleLocation=0x7f05000d;

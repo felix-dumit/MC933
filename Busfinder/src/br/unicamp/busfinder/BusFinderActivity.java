@@ -20,6 +20,7 @@ import org.json.JSONObject;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -30,6 +31,7 @@ import android.location.Location;
 import android.location.LocationManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.preference.PreferenceManager;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -79,6 +81,8 @@ public class BusFinderActivity extends MapActivity implements
 
 	static BusPoints busPoints;
 	static FavoritePoints favorites;
+	public static AlertDialog dialog;
+	public static CountDownTimer timer;
 
 	OverlayManager overlayManager;
 
@@ -350,7 +354,7 @@ public class BusFinderActivity extends MapActivity implements
 		inflater.inflate(R.menu.menu, menu);
 		return true;
 	}
-
+	
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
 		switch (item.getItemId()) {
@@ -362,29 +366,29 @@ public class BusFinderActivity extends MapActivity implements
 			break;
 		case R.id.itemKML:
 
-			//Intent streetView = new Intent(android.content.Intent.ACTION_VIEW,Uri.parse("google.streetview:cbll="+ (double) myPoint.getLatitudeE6() / 1e6+","+(double) myPoint.getLongitudeE6() / 1e6+"&cbp=1,99.56,,1,-5.27&mz=21"));
-			//startActivity(streetView);
-			
+			if(timer!=null)
+				timer.cancel();				
+			TouchOverlay.pathlist.clearPath(map);
+			map.invalidate();
+			dialog=null;
+
+			break;
+
+		case R.id.itemInfo:
+			if(dialog!=null)
+				dialog.show();
+			else Toast.makeText(this, "No route created", Toast.LENGTH_SHORT);
 			
 			break;
+
 		case R.id.itemLocation:
-			
 
 			myPoint = getCurrentPosition(this);
-			// map.getOverlays().remove(myPosition);
-			// myPosition = new MyLocOverlay(gpoint, map);
-			// favorites.insertPinpoint(new PItem(gpoint, "myloc", "snip"));
-			// map.getOverlays().add(myPosition);
 			controller.animateTo(myPoint);
 			controller.setZoom(18);
 			break;
 		}
 		Log.d(TAG, "Menu Selected: " + item.getItemId());
-		return true;
-	}
-
-	@Override
-	protected boolean isRouteDisplayed() {
 		return true;
 	}
 
@@ -584,6 +588,11 @@ public class BusFinderActivity extends MapActivity implements
 			break;
 		}
 
+	}
+
+	@Override
+	protected boolean isRouteDisplayed() {
+		return true;
 	}
 
 }

@@ -13,7 +13,7 @@
     <string name="summaryOffSatelliteView">Like Google Maps</string>
     <string name="summaryCompass">Turns Compass On/Off</string>
     <string name="titleCompass">Compass</string>
-    <string name="titleKML">Read From KML File</string>
+    <string name="titleKML">Cancel Route</string>
     <string name="titleLocation">Goto Current Location</string>
     <string name="newPointName">Point Name</string>
     <string name="newPointDesc">Point Description</string>
@@ -22,5 +22,6 @@
     <string name="searchBusStopsHint">Search Bus Stops</string>
     <string name="busStopSearch">BusStop</string>
     <string name="favoritesSearch">Favorites</string>
+    <string name="titleInfo">View Route Info</string>
 
 </resources>
