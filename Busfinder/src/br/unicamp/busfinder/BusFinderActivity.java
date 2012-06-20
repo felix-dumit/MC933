@@ -32,6 +32,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -150,6 +151,17 @@ public class BusFinderActivity extends MapActivity implements
 		acTextView = (AutoCompleteTextView) findViewById(R.id.fav_search);
 
 		acTextView.setAdapter(favorites.getAdapter());
+		
+		acTextView.setOnKeyListener(new View.OnKeyListener() {
+			
+			public boolean onKey(View v, int keyCode, KeyEvent event) {
+				AutoCompleteTextView acv = (AutoCompleteTextView) v;
+				favorites.updateShownPoints(acv.getText().toString());
+				busPoints.updateShownPoints(acv.getText().toString());
+				map.invalidate();
+				return false;
+			}
+		});
 		// textView.setAdapter(busPoints.getAdapter());
 
 		button = (ImageButton) findViewById(R.id.imageButton1);

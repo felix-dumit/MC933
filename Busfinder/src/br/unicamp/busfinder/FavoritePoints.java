@@ -86,13 +86,14 @@ public class FavoritePoints extends ListPoints {
 
 	 @Override
 	 public void insertPinpoint(PItem item) {
-	 super.insertPinpoint(item);
-	 favAdapter.add(item.getTitle());
+		 super.insertPinpoint(item);
+		 favAdapter.add(item.getTitle());
 	 }
 
 	@Override
 	public void removePinpoint(PItem item) {
 		super.removePinpoint(item);
+		super.removeBackupPinpoint(item);
 		favAdapter.remove(item.getTitle());
 	}
 
