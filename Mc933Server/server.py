@@ -134,11 +134,15 @@ class Resource(object):
     #localhost:8888/getNearestBusStops?lat=;lon=
     @cherrypy.expose
     @cherrypy.tools.json_out()
-    def getNearestBusStops(self, lat=None, lon=None, radius=1000, limit=10):
+    def getNearestBusStops(self, lat=None, lon=None, radius=1000, limit=10, line=None, via=None):
         #dados = list(csv.reader(open('circular1.csv')))
             
         #__location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(sys.argv[0])))
 
+        if line != None and via != None:
+            possible = self.listLinePoints(line, via)
+        else:
+            possible = None
 
         if(lat == None or lon == None):
             return "Missing Lat or Lon"
@@ -158,7 +162,7 @@ class Resource(object):
 
             point = geo.xyz(lat, lon)
             dist = float('%.2f' % geo.distance(source, point))
-            if(float(dist) < float(radius)):
+            if(float(dist) < float(radius) and (possible == None or possible.index(sid) != -1)):
                 ldist.append({
                               'dist':float(dist),
                               'name':name,
@@ -169,13 +173,11 @@ class Resource(object):
            
        
         if(ldist == []):
-             return self.getNearestBusStops(lat, lon, radius + 100, limit)
+            return self.getNearestBusStops(lat, lon, radius + 100, limit)
        
         return sorted(ldist, key=itemgetter('dist'))[0:int(limit)]
     
     
-            
-           
 
 
     @cherrypy.expose
@@ -239,9 +241,46 @@ class Resource(object):
                            
         return lp
                             
-                        
-                            
     
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    def routeClosestPoint(self, lat=None, lon=None, line=0, via=0):
+        try:
+            doc = xml.dom.minidom.parse("Linha" + (line + 1) + ".kml")
+        except:
+            return []
+        
+        source = geo.xyz(float(lat), float(lon))
+        md = -1
+        point = None
+        for node in doc.getElementsByTagName("coordinates"):
+            pts = node[0].childNodes[0].data.split(" ")
+            for p in pts:
+                p = p.split(',')
+                pt = geo.xyz(float(p[0]), float(p[1]))
+                d = geo.distance(source, pt)
+                if md == -1 or d < md:
+                    point = {'lat': p[0], 'lon': p[1], 'dist': d}
+                    md = d
+        return point
+                
+        
+             
+    #coordinates            
+    @cherrypy.expose
+    @cherrypy.tools.json_out() 
+    def getBusPath(self, line=0, via=0, start=-1, end=-1):
+        lp = []
+        try:
+            doc = xml.dom.minidom.parse("Linha" + (line + 1) + ".kml")
+        except:
+            return []
+        
+        if start != -1:
+            pt = self.getStopPosition(start)
+            point = self.routeClosestPoint(pt['lat'], pt['lon'], line, via)
+
+        return None
     
     @cherrypy.expose
     def getFullRoute(self, line=0, via=0):
@@ -263,7 +302,7 @@ class Resource(object):
         urlstr += "&ie=UTF8&0&dirflg=w&cad=tm:d&mra=atm&output=kml"
         return urlstr
 
-           
+    
     
 
     @cherrypy.expose
