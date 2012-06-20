@@ -43,6 +43,7 @@ public class ListPoints extends ItemizedOverlay<PItem> {
 	public void insertPinpoint(PItem item) {
 		if (!getPinpoints().contains(item)) {
 			getPinpoints().add(item);
+			backup.add(item);
 			setLastFocusedIndex(-1);
 			this.populate();
 		}
@@ -50,7 +51,7 @@ public class ListPoints extends ItemizedOverlay<PItem> {
 	}
 	
 	public void updateShownPoints(String s) {
-		ArrayList<PItem> limbo = new ArrayList<PItem>();
+		/*ArrayList<PItem> limbo = new ArrayList<PItem>();
 		ArrayList<PItem> aux = new ArrayList<PItem>();
 		for (PItem i: pinpoints) {
 			if (!i.getTitle().contains(s)) {
@@ -71,8 +72,13 @@ public class ListPoints extends ItemizedOverlay<PItem> {
 		}
 		for (PItem i: limbo) {
 			backup.add(i);
+		}*/
+		pinpoints.clear();
+		for (PItem i: backup) {
+			if (i.getTitle().toUpperCase().contains(s.toUpperCase())) {
+				pinpoints.add(i);
+			}
 		}
-		limbo.clear();
 		this.setLastFocusedIndex(-1);
 		this.populate();
 	}

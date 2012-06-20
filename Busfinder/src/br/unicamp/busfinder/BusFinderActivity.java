@@ -31,15 +31,22 @@ import android.location.LocationManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
+import android.view.ContextMenu;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ContextMenu.ContextMenuInfo;
 import android.view.View.OnClickListener;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.AdapterView;
 import android.widget.AutoCompleteTextView;
 import android.widget.ImageButton;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.maps.GeoPoint;
@@ -152,14 +159,34 @@ public class BusFinderActivity extends MapActivity implements
 
 		acTextView.setAdapter(favorites.getAdapter());
 		
-		acTextView.setOnKeyListener(new View.OnKeyListener() {
+		acTextView.addTextChangedListener(new TextWatcher() {
 			
-			public boolean onKey(View v, int keyCode, KeyEvent event) {
-				AutoCompleteTextView acv = (AutoCompleteTextView) v;
-				favorites.updateShownPoints(acv.getText().toString());
-				busPoints.updateShownPoints(acv.getText().toString());
+			public void onTextChanged(CharSequence s, int start, int before, int count) {
+				
+			}
+			
+			public void beforeTextChanged(CharSequence s, int start, int count,
+					int after) {
+				
+			}
+			
+			public void afterTextChanged(Editable s) {
+				Log.d("LISTENER", "TextWatcher");
+				favorites.updateShownPoints(s.toString());
+				busPoints.updateShownPoints(s.toString());
 				map.invalidate();
-				return false;
+				
+			}
+		});
+		this.getCurrentFocus();
+		acTextView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+
+			public void onItemClick(AdapterView<?> arg0, View arg1, int arg2,
+					long arg3) {
+				Log.d("LISTENER", "OnItemClickListener Activated with args: " + arg2 + " and " + arg3);
+				BusFinderActivity a = (BusFinderActivity) arg1.getContext();
+				a.hideKeyboard();
+				arg1.clearFocus();
 			}
 		});
 		// textView.setAdapter(busPoints.getAdapter());
@@ -219,6 +246,14 @@ public class BusFinderActivity extends MapActivity implements
 	protected void onStop() {
 		Log.d(TAG, "onStop");
 		super.onStop();
+	}
+	
+	public void hideKeyboard() {
+		InputMethodManager imm = (InputMethodManager) getSystemService(
+			    INPUT_METHOD_SERVICE);
+		View v = getCurrentFocus();
+		if (v != null)
+			imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
 	}
 
 	private void restorePointsList(FavoritePoints fav) {
