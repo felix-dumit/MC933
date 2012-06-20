@@ -4,24 +4,22 @@ import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.sql.Time;
 import java.util.Calendar;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 import android.app.AlertDialog;
+import android.app.TimePickerDialog;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.graphics.Color;
 import android.graphics.PointF;
 import android.graphics.drawable.Drawable;
 import android.os.Vibrator;
@@ -29,6 +27,7 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.TimePicker;
 import android.widget.Toast;
 
 import com.google.android.maps.GeoPoint;
@@ -37,7 +36,7 @@ import com.google.android.maps.Overlay;
 
 public class TouchOverlay extends Overlay {
 	long start_time, stop_time;
-	private Context c;
+	private Context context;
 	private Drawable d;
 
 	private PointF sp, ep;
@@ -46,8 +45,8 @@ public class TouchOverlay extends Overlay {
 	static PathList pathlist;
 
 	public TouchOverlay(Context context) {
-		c = context;
-		d = c.getResources().getDrawable(R.drawable.ic_launcher);
+		this.context = context;
+		d = context.getResources().getDrawable(R.drawable.ic_launcher);
 		sp = new PointF();
 		ep = new PointF();
 		pathlist = new PathList();
@@ -80,11 +79,11 @@ public class TouchOverlay extends Overlay {
 		if (stop_time - start_time > 600 & distance < 50) {
 			Log.d("TouchOverlay", "LongTouch");
 
-			Vibrator v = (Vibrator) c
+			Vibrator v = (Vibrator) context
 					.getSystemService(Context.VIBRATOR_SERVICE);
 			v.vibrate(200);
 
-			AlertDialog alert = new AlertDialog.Builder(c).create();
+			AlertDialog alert = new AlertDialog.Builder(context).create();
 			alert.setTitle("Alert Title");
 			alert.setMessage("Pick Option");
 			alert.setButton("Add to Favorites",
@@ -92,18 +91,18 @@ public class TouchOverlay extends Overlay {
 
 						public void onClick(DialogInterface dialog, int which) {
 
-							AlertDialog alert2 = new AlertDialog.Builder(c)
+							AlertDialog alert2 = new AlertDialog.Builder(context)
 									.create();
 
 							alert2.setTitle("Enter new point name");
 
-							final EditText inputName = new EditText(c);
+							final EditText inputName = new EditText(context);
 							inputName.setHint("Point Name");
 
-							final EditText inputDesc = new EditText(c);
+							final EditText inputDesc = new EditText(context);
 							inputDesc.setHint("Point Description");
 
-							LinearLayout v = new LinearLayout(c);
+							LinearLayout v = new LinearLayout(context);
 							v.setOrientation(LinearLayout.VERTICAL);
 							v.addView(inputName);
 							v.addView(inputDesc);
@@ -117,7 +116,7 @@ public class TouchOverlay extends Overlay {
 												DialogInterface dialog,
 												int which) {
 
-											Toast.makeText(c,
+											Toast.makeText(context,
 													"added new point",
 													Toast.LENGTH_SHORT).show();
 
@@ -140,93 +139,63 @@ public class TouchOverlay extends Overlay {
 						}
 					});
 
-			alert.setButton2("DrawPath", new DialogInterface.OnClickListener() {
+			alert.setButton2("GetPath", new DialogInterface.OnClickListener() {
 
 				public void onClick(DialogInterface dialog, int which) {
-
-					Calendar now = Calendar.getInstance();
-					// now.setTime(new Time(12, 40, 00)); // remove this
-					String time = now.getTime().getHours() + ":"
-							+ now.getTime().getMinutes();
-					time = "";
-
-					String req = String
-							.format(BusFinderActivity.SERVER
-									+ "Point2Point?s_lat=%f;s_lon=%f;d_lat=%f;d_lon=%f;time=%s",
-									(double) BusFinderActivity.myPoint
-											.getLatitudeE6() / 1E6,
-									(double) BusFinderActivity.myPoint
-											.getLongitudeE6() / 1E6,
-									(double) touchedpoint.getLatitudeE6() / 1e6,
-									(double) touchedpoint.getLongitudeE6() / 1e6,
-									time);
-					JSONArray path = ServerOperations.getJSON(req);
-					JSONObject obj = null;
-					try {
-						obj = path.getJSONObject(0);
-
-						int source = Integer.parseInt(obj.getString("source"));
-						int dest = Integer.parseInt(obj.getString("dest"));
-						String action = obj.getString("action");
-						String departure = obj.getString("departure");
-						String arrival = obj.getString("arrival");
-						String circular = obj.getString("circular");
-						int timeleft = obj.getInt("time");
-
-						req = BusFinderActivity.SERVER
-								+ "getStopPosition?stopid=";
-
-						JSONArray jar = ServerOperations.getJSON(req + source);
-						if (jar == null)
-							return;
-
-						GeoPoint sourcePoint =  ServerOperations
-								.geoFromJSON(jar.getJSONObject(0));
+					
+					
+					AlertDialog alert2 = new AlertDialog.Builder(context)
+					.create();
+					alert2.setTitle("When do you want to go?");
+					
+					alert2.setButton("Now", new DialogInterface.OnClickListener() {
 						
-						DrawPath(BusFinderActivity.myPoint,sourcePoint,
-								Color.GREEN, map, true);
-						String source_ = jar.getJSONObject(0).getString("name");
+						public void onClick(DialogInterface dialog, int which) {
 
-						jar = ServerOperations.getJSON(req + dest);
-						if (jar == null)
-							return;
+							ServerOperations.Point2Point(touchedpoint, BusFinderActivity.map, context,Calendar.getInstance());
+							
+						}
+					});
+					
+					
+					
+					alert2.setButton2("Choose Time", new DialogInterface.OnClickListener() {
 						
-						GeoPoint destPoint =  ServerOperations
-								.geoFromJSON(jar.getJSONObject(0));
+						public void onClick(DialogInterface dialog, int which) {
+							// TODO Auto-generated method stub
+							
+							final Calendar now = Calendar.getInstance();
+							
+							
+							TimePickerDialog.OnTimeSetListener mTimeSetListener =
+								    new TimePickerDialog.OnTimeSetListener() {
+								        public void onTimeSet(TimePicker view, int hourOfDay, int minute) {
+								          
+								        	now.setTime(new Time(hourOfDay, minute, 0));
+								        	ServerOperations.Point2Point(touchedpoint, BusFinderActivity.map, context,now);
+								        	
+								        	
+								        }
+								    };
+							
+							TimePickerDialog tp = new TimePickerDialog(context, mTimeSetListener, now.getTime().getHours(),now.getTime().getMinutes(), true);
+							tp.show();
+							tp.setCanceledOnTouchOutside(true);
+							
+						}
+					});
+					alert2.show();
+					
+									
+					
 
-						DrawPath(destPoint, touchedpoint, Color.BLUE,
-								map, false);
-						
-						
-						PathOverlay pO = new PathOverlay(sourcePoint, destPoint, 2, Color.RED);
-						pathlist.addItem(pO, map);
 
-						String dest_ = jar.getJSONObject(0).getString("name");
-
-						Toast.makeText(
-								c,
-								"Take " + circular + " from " + source_
-										+ " at " + departure
-										+ " and arrive at " + dest_ + " at "
-										+ arrival + "----YOU HAVE " + timeleft
-										+ " seconds", Toast.LENGTH_LONG).show();
-
-						Log.d("TOAST", "Take " + circular + " from " + source_
-								+ " at " + departure + " and arrive at "
-								+ dest_ + " at " + arrival + "----YOU HAVE "
-								+ timeleft + " seconds");
-
-					} catch (JSONException e) {
-						e.printStackTrace();
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
-
-				}
+									}
 			});
 			alert.setButton3("Cancel", new DialogInterface.OnClickListener() {
 
 				public void onClick(DialogInterface dialog, int which) {
+					
 
 				}
 			});
@@ -241,6 +210,14 @@ public class TouchOverlay extends Overlay {
 		return false;
 	}
 
+	
+	
+	
+	
+	
+	
+
+	
 	public static void DrawPath(GeoPoint src, GeoPoint dest, int color,
 			MapView mapView, boolean clear) {
 		// connect to map web service

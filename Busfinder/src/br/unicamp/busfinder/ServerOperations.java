@@ -4,6 +4,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.sql.Time;
+import java.util.Calendar;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -15,10 +17,13 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import android.content.Context;
+import android.graphics.Color;
 import android.util.Log;
 import android.widget.Toast;
 
 import com.google.android.maps.GeoPoint;
+import com.google.android.maps.MapView;
 
 public class ServerOperations {
 
@@ -82,5 +87,102 @@ public class ServerOperations {
 		return null;
 
 	}
+	
+public static void Point2Point(GeoPoint touchedpoint, MapView map, Context c, Calendar now){	
+	
+	// now.setTime(new Time(12, 40, 00)); // remove this
+	String time = pad(now.getTime().getHours()) + ":"
+		    +pad(now.getTime().getMinutes())+":"+pad(now.getTime().getSeconds());
+	//time = "";
+
+	TouchOverlay.pathlist.clearPath(map);
+	
+	String req = String
+			.format(BusFinderActivity.SERVER
+					+ "Point2Point?s_lat=%f;s_lon=%f;d_lat=%f;d_lon=%f;time=%s;limit=%d",
+					(double) BusFinderActivity.myPoint
+							.getLatitudeE6() / 1E6,
+					(double) BusFinderActivity.myPoint
+							.getLongitudeE6() / 1E6,
+					(double) touchedpoint.getLatitudeE6() / 1e6,
+					(double) touchedpoint.getLongitudeE6() / 1e6,
+					time,
+					5);
+	JSONArray path = getJSON(req);
+	if(path==null)Log.d("No response","null"
+			);
+	JSONObject obj = null;
+	try {
+		obj = path.getJSONObject(0);
+
+		int source = Integer.parseInt(obj.getString("source"));
+		int dest = Integer.parseInt(obj.getString("dest"));
+		String action = obj.getString("action");
+		String departure = obj.getString("departure");
+		String arrival = obj.getString("arrival");
+		String circular = obj.getString("circular");
+		int timeleft = obj.getInt("time");
+
+		req = BusFinderActivity.SERVER
+				+ "getStopPosition?stopid=";
+
+		JSONArray jar = getJSON(req + source);
+	
+		GeoPoint sourcePoint =  geoFromJSON(jar.getJSONObject(0));
+		
+		TouchOverlay.DrawPath(BusFinderActivity.myPoint,sourcePoint,
+				Color.GREEN, map, true);
+		String source_ = jar.getJSONObject(0).getString("name");
+
+		jar = getJSON(req + dest);
+				
+		GeoPoint destPoint =  geoFromJSON(jar.getJSONObject(0));
+
+		TouchOverlay.DrawPath(destPoint, touchedpoint, Color.BLUE,
+				map, false);
+		
+		
+		PathOverlay pO = new PathOverlay(sourcePoint, destPoint, 2, Color.RED);
+		TouchOverlay.pathlist.addItem(pO, map);
+
+		String dest_ = jar.getJSONObject(0).getString("name");
+		
+
+		Toast.makeText(
+				c,
+				"Take " + circular + " from " + source_
+						+ " at " + departure
+						+ " and arrive at " + dest_ + " at "
+						+ arrival + "----YOU HAVE " + timeleft
+						+ " seconds", Toast.LENGTH_LONG).show();
+
+		Log.d("TOAST", "Take " + circular + " from " + source_
+				+ " at " + departure + " and arrive at "
+				+ dest_ + " at " + arrival + "----YOU HAVE "
+				+ timeleft + " seconds");
+		
+		
+			
+		
+
+	} catch (JSONException e) {
+		e.printStackTrace();
+	} catch (Exception e) {
+		e.printStackTrace();
+	}
+	
+	
+	Toast.makeText(c, "Sorry No Path Found...", Toast.LENGTH_LONG).show();
+
+	}
+
+private static String pad(int c) {
+    if (c >= 10)
+        return String.valueOf(c);
+    else
+        return "0" + String.valueOf(c);
+}
+	
+	
 
 }

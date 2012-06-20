@@ -327,12 +327,13 @@ public class BusFinderActivity extends MapActivity implements
 			break;
 		case R.id.itemKML:
 
-			Intent streetView = new Intent(android.content.Intent.ACTION_VIEW,Uri.parse("google.streetview:cbll="+ (double) myPoint.getLatitudeE6() / 1e6+","+(double) myPoint.getLongitudeE6() / 1e6+"&cbp=1,99.56,,1,-5.27&mz=21"));
-			startActivity(streetView);
+			//Intent streetView = new Intent(android.content.Intent.ACTION_VIEW,Uri.parse("google.streetview:cbll="+ (double) myPoint.getLatitudeE6() / 1e6+","+(double) myPoint.getLongitudeE6() / 1e6+"&cbp=1,99.56,,1,-5.27&mz=21"));
+			//startActivity(streetView);
 			
 			
 			break;
 		case R.id.itemLocation:
+			
 
 			myPoint = getCurrentPosition(this);
 			// map.getOverlays().remove(myPosition);

@@ -1,8 +1,11 @@
 package br.unicamp.busfinder;
 
+import java.sql.Time;
 import java.util.ArrayList;
+import java.util.Calendar;
 
 import android.app.AlertDialog;
+import android.app.TimePickerDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.graphics.Color;
@@ -10,6 +13,7 @@ import android.graphics.drawable.Drawable;
 import android.os.Parcelable;
 import android.util.Log;
 import android.widget.ArrayAdapter;
+import android.widget.TimePicker;
 import android.widget.Toast;
 
 import com.google.android.maps.GeoPoint;
@@ -43,19 +47,64 @@ public class FavoritePoints extends ListPoints {
 
 					public void onClick(DialogInterface dialog, int which) {
 
-						GeoPoint src = BusFinderActivity
-								.getCurrentPosition(context);
+						
+						
+						AlertDialog alert2 = new AlertDialog.Builder(context)
+						.create();
+						alert2.setTitle("When do you want to go?");
+						
+						alert2.setButton("Now", new DialogInterface.OnClickListener() {
+							
+							public void onClick(DialogInterface dialog, int which) {
 
-						TouchOverlay.DrawPath(src, item.getPoint(), Color.CYAN,
-								null, false);
+								ServerOperations.Point2Point(item.getPoint(), BusFinderActivity.map, context,Calendar.getInstance());
+								
+							}
+						});
+						
+						
+						
+						alert2.setButton2("Choose Time", new DialogInterface.OnClickListener() {
+							
+							public void onClick(DialogInterface dialog, int which) {
+								// TODO Auto-generated method stub
+								
+								final Calendar now = Calendar.getInstance();
+								
+								
+								TimePickerDialog.OnTimeSetListener mTimeSetListener =
+									    new TimePickerDialog.OnTimeSetListener() {
+									        public void onTimeSet(TimePicker view, int hourOfDay, int minute) {
+									          
+									        	now.setTime(new Time(hourOfDay, minute, 0));
+									        	ServerOperations.Point2Point(item.getPoint(), BusFinderActivity.map, context,now);
+									        	
+									        	
+									        }
+									    };
+								
+								TimePickerDialog tp = new TimePickerDialog(context, mTimeSetListener, now.getTime().getHours(),now.getTime().getMinutes(), true);
+								tp.show();
+								tp.setCanceledOnTouchOutside(true);
+								
+							}
+						});
+						alert2.show();
+						
+						
+						
+												
+						//ServerOperations.Point2Point(item.getPoint(), BusFinderActivity.map, context,now);
+						
+						
 
-						Toast.makeText(
+						/*Toast.makeText(
 								context,
 								"destination is "
 										+ BusFinderActivity.GeoDistance(
 												BusFinderActivity.myPoint,
 												item.getPoint()) + "m away",
-								Toast.LENGTH_SHORT).show();
+								Toast.LENGTH_SHORT).show();*/
 
 					}
 				});
